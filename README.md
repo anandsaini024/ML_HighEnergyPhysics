@@ -1,0 +1,25 @@
+@inproceedings{Kansal_MPGAN_2021,
+  author = {Kansal, Raghav and Duarte, Javier and Su, Hao and Orzari, Breno and Tomei, Thiago and Pierini, Maurizio and Touranakou, Mary and Vlimant, Jean-Roch and Gunopulos, Dimitrios},
+  booktitle = "{Advances in Neural Information Processing Systems}",
+  editor = {M. Ranzato and A. Beygelzimer and Y. Dauphin and P.S. Liang and J. Wortman Vaughan},
+  pages = {23858--23871},
+  publisher = {Curran Associates, Inc.},
+  title = {Particle Cloud Generation with Message Passing Generative Adversarial Networks},
+  url = {https://proceedings.neurips.cc/paper_files/paper/2021/file/c8512d142a2d849725f31a9a7a361ab9-Paper.pdf},
+  volume = {34},
+  year = {2021},
+  eprint = {2106.11535},
+  archivePrefix = {arXiv},
+}
+
+@article{Kansal_JetNet_2023,
+  author = {Kansal, Raghav and Pareja, Carlos and Hao, Zichun and Duarte, Javier},
+  doi = {10.21105/joss.05789},
+  journal = {Journal of Open Source Software},
+  number = {90},
+  pages = {5789},
+  title = {{JetNet: A Python package for accessing open datasets and benchmarking machine learning methods in high energy physics}},
+  url = {https://joss.theoj.org/papers/10.21105/joss.05789},
+  volume = {8},
+  year = {2023}
+}
