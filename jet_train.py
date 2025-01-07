@@ -7,7 +7,8 @@ from jetnet.datasets import JetNet
 from jetnet.datasets.normalisations import FeaturewiseLinear
 from sklearn.preprocessing import OneHotEncoder
 from torch.utils.data import DataLoader
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
 # function to one hot encode the jet type and leave the rest of the features as is
 def OneHotEncodeType(x: np.ndarray):
     enc = OneHotEncoder(categories=[[0., 2., 3.]])
@@ -35,97 +36,122 @@ data_args = {
 jets_train = JetNet(**data_args, split="train")
 jets_valid = JetNet(**data_args, split="valid")
 
-train_loader = DataLoader(jets_train, batch_size=64, shuffle=True)
-val_loader = DataLoader(jets_valid, batch_size=64, shuffle=True)
-
-for i, (particle_batch, jet_batch) in enumerate(train_loader):
-    print(f"Batch {i+1}:")
-    print(f"Particle Batch Shape: {particle_batch.shape}")
-    print(f"Jet Batch Shape: {jet_batch.shape}")
-    break 
+x_train = jets_train.particle_data
+y_train = jets_train.jet_data[:, 0]
+x_valid = jets_valid.particle_data
+y_valid = jets_valid.jet_data[:, 0]
 
 
-class HEPTransformer(nn.Module):
-    def __init__(self, particle_dim, jet_dim, embed_dim, num_heads, ff_dim, num_layers, output_dim):
-        super(HEPTransformer, self).__init__()
+x_train_flat = x_train.reshape(x_train.shape[0], -1)
+x_valid_flat = x_valid.reshape(x_valid.shape[0], -1)
+
+y_train = y_train.reshape(-1,1)
+y_valid = y_valid.reshape(-1,1)
+
+enc = OneHotEncoder(sparse_output=False)
+y_train_encoded = enc.fit_transform(y_train)
+y_valid_encoded = enc.fit_transform(y_valid)
+
+
+y_train_indices = np.argmax(y_train_encoded, axis=1)
+y_valid_indices = np.argmax(y_valid_encoded, axis = 1)
+
+logistic_model = LogisticRegression(multi_class='multinomial', max_iter=1000)
+logistic_model.fit(x_train_flat, y_train_indices)
+
+y_pred_indices = logistic_model.predict(x_valid_flat)
+accuracy = accuracy_score(y_valid_indices, y_pred_indices)
+# train_loader = DataLoader(jets_train, batch_size=64, shuffle=True)
+# val_loader = DataLoader(jets_valid, batch_size=64, shuffle=True)
+
+# for i, (particle_batch, jet_batch) in enumerate(train_loader):
+#     print(f"Batch {i+1}:")
+#     print(f"Particle Batch Shape: {particle_batch.shape}")
+#     print(f"Jet Batch Shape: {jet_batch.shape}")
+#     break 
+
+
+# class HEPTransformer(nn.Module):
+#     def __init__(self, particle_dim, jet_dim, embed_dim, num_heads, ff_dim, num_layers, output_dim):
+#         super(HEPTransformer, self).__init__()
         
-        # Particle embedding
-        self.particle_embedding = nn.Linear(particle_dim, embed_dim)
-        self.positional_encoding = nn.Parameter(torch.zeros(30, embed_dim))  # Max particles = 30
+#         # Particle embedding
+#         self.particle_embedding = nn.Linear(particle_dim, embed_dim)
+#         self.positional_encoding = nn.Parameter(torch.zeros(30, embed_dim))  # Max particles = 30
 
-        # Transformer encoder
-        self.transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, dim_feedforward=ff_dim),
-            num_layers=num_layers
-        )
+#         # Transformer encoder
+#         self.transformer = nn.TransformerEncoder(
+#             nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, dim_feedforward=ff_dim),
+#             num_layers=num_layers
+#         )
         
-        # Jet feature processing
-        self.jet_processor = nn.Linear(jet_dim, embed_dim)
+#         # Jet feature processing
+#         self.jet_processor = nn.Linear(jet_dim, embed_dim)
 
-        # Final classification head
-        self.output_layer = nn.Sequential(
-            nn.Linear(embed_dim, ff_dim),
-            nn.ReLU(),
-            nn.Linear(ff_dim, output_dim)
-        )
+#         # Final classification head
+#         self.output_layer = nn.Sequential(
+#             nn.Linear(embed_dim, ff_dim),
+#             nn.ReLU(),
+#             nn.Linear(ff_dim, output_dim)
+#         )
 
-    def forward(self, particle_features, jet_features):
-        # Embed particle features and add positional encoding
-        batch_size, num_particles, _ = particle_features.shape
-        particle_features = self.particle_embedding(particle_features)  # [B, 30, embed_dim]
-        particle_features += self.positional_encoding[:num_particles]  # Add positional encoding
+#     def forward(self, particle_features, jet_features):
+#         # Embed particle features and add positional encoding
+#         batch_size, num_particles, _ = particle_features.shape
+#         particle_features = self.particle_embedding(particle_features)  # [B, 30, embed_dim]
+#         particle_features += self.positional_encoding[:num_particles]  # Add positional encoding
 
-        # Process particle data with transformer
-        particle_features = particle_features.transpose(0, 1)  # [30, B, embed_dim]
-        encoded_particles = self.transformer(particle_features).mean(dim=0)  # Mean pool [B, embed_dim]
+#         # Process particle data with transformer
+#         particle_features = particle_features.transpose(0, 1)  # [30, B, embed_dim]
+#         encoded_particles = self.transformer(particle_features).mean(dim=0)  # Mean pool [B, embed_dim]
 
-        # Process jet features
-        processed_jet = self.jet_processor(jet_features)  # [B, embed_dim]
+#         # Process jet features
+#         processed_jet = self.jet_processor(jet_features)  # [B, embed_dim]
 
-        # Combine particle and jet representations
-        combined = encoded_particles + processed_jet  # Element-wise addition
+#         # Combine particle and jet representations
+#         combined = encoded_particles + processed_jet  # Element-wise addition
 
-        # Final prediction
-        output = self.output_layer(combined)  # [B, output_dim]
-        return output
+#         # Final prediction
+#         output = self.output_layer(combined)  # [B, output_dim]
+#         return output
 
-# Hyperparameters
-particle_dim = 4
-jet_dim = 6
-embed_dim = 64
-num_heads = 4
-ff_dim = 128
-num_layers = 2
-output_dim = 10  # Example: 10-class classification
+# # Hyperparameters
+# particle_dim = 4
+# jet_dim = 6
+# embed_dim = 64
+# num_heads = 4
+# ff_dim = 128
+# num_layers = 2
+# output_dim = 10  # Example: 10-class classification
 
-# Initialize model, loss, and optimizer
-model = HEPTransformer(particle_dim, jet_dim, embed_dim, num_heads, ff_dim, num_layers, output_dim)
-criterion = nn.CrossEntropyLoss()  # Classification loss
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+# # Initialize model, loss, and optimizer
+# model = HEPTransformer(particle_dim, jet_dim, embed_dim, num_heads, ff_dim, num_layers, output_dim)
+# criterion = nn.CrossEntropyLoss()  # Classification loss
+# optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-# Training loop
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
+# # Training loop
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# model.to(device)
 
-for epoch in range(10):  # Train for 10 epochs
-    model.train()
-    total_loss = 0
+# for epoch in range(10):  # Train for 10 epochs
+#     model.train()
+#     total_loss = 0
     
-    for batch in train_loader:
-        particle_features, jet_features, targets = batch  # Assuming train_loader returns these
-        particle_features = particle_features.to(device)  # [64, 30, 4]
-        jet_features = jet_features.to(device)  # [64, 6]
-        targets = targets.to(device)
+#     for batch in train_loader:
+#         particle_features, jet_features, targets = batch  # Assuming train_loader returns these
+#         particle_features = particle_features.to(device)  # [64, 30, 4]
+#         jet_features = jet_features.to(device)  # [64, 6]
+#         targets = targets.to(device)
         
-        # Forward pass
-        outputs = model(particle_features, jet_features)
-        loss = criterion(outputs, targets)
+#         # Forward pass
+#         outputs = model(particle_features, jet_features)
+#         loss = criterion(outputs, targets)
         
-        # Backward pass
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+#         # Backward pass
+#         optimizer.zero_grad()
+#         loss.backward()
+#         optimizer.step()
         
-        total_loss += loss.item()
+#         total_loss += loss.item()
     
-    print(f"Epoch {epoch + 1}, Loss: {total_loss / len(train_loader):.4f}")
+#     print(f"Epoch {epoch + 1}, Loss: {total_loss / len(train_loader):.4f}")
