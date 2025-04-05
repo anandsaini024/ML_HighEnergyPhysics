@@ -1,6 +1,6 @@
 # Jet Classification using Classical and Neural Models
 
-This repository explores jet classification in high-energy physics using both classical machine learning and deep learning models. It leverages the [JetNet](https://github.com/jetnet-project/jetnet) dataset to distinguish between gluon, top quark, and W boson jets based on particle and jet-level features.
+This repository explores jet classification in high-energy physics using both classical machine learning and deep learning models. It leverages the [JetNet](https://github.com/jet-net/JetNet/tree/main) dataset to distinguish between gluon, top quark, and W boson jets based on particle and jet-level features.
 
 ## Contents
 
@@ -22,7 +22,7 @@ This repository explores jet classification in high-energy physics using both cl
 
 ## Dataset
 
-- The dataset is handled via the [JetNet API](https://github.com/jetnet-project/jetnet) and is automatically downloaded.
+- The dataset is handled via the [JetNet API](https://github.com/jet-net/JetNet/tree/main) and is automatically downloaded.
 - Features used:
   - **Particle features**: `etarel`, `phirel`, `ptrel`, `mask`
   - **Jet features**: `type`, `pt`, `eta`, `mass`
